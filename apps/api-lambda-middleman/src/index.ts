@@ -9,13 +9,11 @@ const WORDPRESS_API_URL = process.env.WORDPRESS_API_URL || 'http://localhost:808
 app.use(cors());
 app.use(express.json());
 
-// 1. Define the internal schema used by WordPress for string-rendered fields
 interface WPRenderedString {
     rendered: string;
     protected?: boolean;
 }
 
-// 2. Define the structural contract for incoming raw third-party content
 interface WordPressRawPost {
     id: number;
     date: string;
@@ -24,10 +22,9 @@ interface WordPressRawPost {
     content: WPRenderedString;
     excerpt: WPRenderedString;
     status: string;
-    [key: string]: unknown; // Gracefully allows unmapped backend properties without using 'any'
+    [key: string]: unknown;
 }
 
-// 3. Define the strict outgoing contract guaranteed to our React client
 interface TransformedPost {
     id: number;
     title: string;
@@ -37,21 +34,25 @@ interface TransformedPost {
     date: string;
 }
 
-// Main execution controller
 app.get('/api/posts', async (req: Request, res: Response) => {
     try {
-        // Query the core headless CMS layer with a standard network timeout policy
-        const response = await axios.get<WordPressRawPost[]>(`${WORDPRESS_API_URL}/wp/v2/posts?_embed`, {
+        // Query upstream CMS engine
+        const response = await axios.get<unknown>(`${WORDPRESS_API_URL}/wp/v2/posts?_embed`, {
             timeout: 5000
         });
 
-        // Pure serialization mapping using explicit structures 
-        const serializedPosts: TransformedPost[] = response.data.map((post: WordPressRawPost) => ({
+        // DEFENSIVE TYPE GUARD: Confirm payload matches expected collection contract[cite: 1]
+        if (!Array.isArray(response.data)) {
+            throw new Error(`Upstream CMS returned an invalid payload structure (Expected Array, received ${typeof response.data}).`);
+        }
+
+        // Explicit compilation mapping safely guarded by structural verification
+        const serializedPosts: TransformedPost[] = (response.data as WordPressRawPost[]).map((post) => ({
             id: post.id,
-            title: post.title.rendered || 'Untitled Post',
+            title: post.title?.rendered || 'Untitled Post',
             slug: post.slug || '',
-            content: post.content.rendered || '',
-            excerpt: post.excerpt.rendered || '',
+            content: post.content?.rendered || '',
+            excerpt: post.excerpt?.rendered || '',
             date: post.date || new Date().toISOString()
         }));
 
@@ -62,16 +63,15 @@ app.get('/api/posts', async (req: Request, res: Response) => {
         });
 
     } catch (error: unknown) {
-        // Defensive handling for runtime network or server failures[cite: 1]
         const errorMessage = error instanceof Error ? error.message : 'Unknown network failure';
-        console.error(`[API Bridge Error]: ${errorMessage}`);
+        console.error(`[API Bridge Mitigation Handled]: ${errorMessage}`);
 
         return res.status(200).json({
             success: false,
             count: 0,
-            data: [], // Safe client override prevents UI from throwing runtime exceptions[cite: 1]
+            data: [], // Perfect client-side fallback asset protection[cite: 1]
             meta: {
-                warning: "Upstream CMS service layer unavailable. Serving safe fallback array.",
+                warning: "Upstream CMS content schema unavailable. Supplying safe array fallback.",
                 errorDetails: errorMessage
             }
         });

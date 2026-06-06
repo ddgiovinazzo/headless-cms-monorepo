@@ -1,5 +1,5 @@
 services:
-  # 1. Persistent Database Store for Headless Core
+  # 1. Database Layer
   db:
     image: mysql:8.0
     container_name: headless-mysql-db
@@ -14,7 +14,7 @@ services:
     networks:
       - monorepo-network
 
-  # 2. Headless WordPress CMS (Isolated Content Layer)
+  # 2. Core Content Store (Headless WordPress)
   wordpress:
     image: wordpress:latest
     container_name: headless-wordpress-cms
@@ -33,7 +33,7 @@ services:
     networks:
       - monorepo-network
 
-  # 3. API Middleman (Simulating stateless AWS Lambda / Gateway Gateway Layer)
+  # 3. API Middleman (Simulating stateless AWS Lambda local execution)
   api-lambda-middleman:
     image: node:20-alpine
     container_name: api-lambda-middleman
@@ -42,7 +42,9 @@ services:
       - "3001:3001"
     volumes:
       - .:/usr/src/app
-    command: npm run dev --workspace=apps/api-lambda-middleman
+      # Anonymous volume overlay isolates Linux dependencies from macOS host
+      - /usr/src/app/node_modules
+    command: sh -c "npm install && npm run dev --workspace=apps/api-lambda-middleman"
     environment:
       - PORT=3001
       - WORDPRESS_API_URL=http://headless-wordpress-cms/wp-json
@@ -51,7 +53,7 @@ services:
     networks:
       - monorepo-network
 
-  # 4. Vite React Client Application
+  # 4. Presentation UI (Vite + React Client)
   client-react:
     image: node:20-alpine
     container_name: client-react
@@ -60,16 +62,20 @@ services:
       - "5173:5173"
     volumes:
       - .:/usr/src/app
-    command: npm run dev --workspace=apps/client-react
+      # Anonymous volume overlay isolates Vite's native Linux binary from macOS host
+      - /usr/src/app/node_modules
+    command: sh -c "npm install && npm run dev --workspace=apps/client-react"
     depends_on:
       - api-lambda-middleman
     networks:
       - monorepo-network
 
+# Persistent Volume Storage Declarations
 volumes:
   mysql_data:
   wp_data:
 
+    # Shared Infrastructure Network Bridge Declaration
 networks:
   monorepo-network:
     driver: bridge
