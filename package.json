@@ -1,0 +1,17 @@
+{
+    "name": "headless-cms-monorepo",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Monorepo sandbox for a headless WordPress backend and a decoupled Vite + React frontend client.",
+    "scripts": {
+        "install:all": "npm install",
+        "dev:client": "npm run dev --workspace=apps/client-react",
+        "docker:up": "docker compose up -d",
+        "docker:down": "docker compose down",
+        "clean": "rm -rf node_modules packages/*/node_modules apps/*/node_modules"
+    },
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ]
+}

@@ -1,0 +1,186 @@
+# ==========================================
+# Robust .gitignore for Headless CMS Monorepo
+# ==========================================
+
+# ------------------------------------------
+# Node.js & Dependency Managers
+# ------------------------------------------
+node_modules/
+jspm_packages/
+web_modules/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Lock files: Typically tracked in repository, but uncomment if you prefer otherwise
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+# bun.lockb
+
+# ------------------------------------------
+# Build Outputs & Compilation Cache
+# ------------------------------------------
+# General build directories
+dist/
+build/
+out/
+target/
+.next/
+.nuxt/
+.output/
+.svelte-kit/
+.docusaurus/
+.cache/
+.parcel-cache/
+.astro/
+.expo/
+.vuepress/dist/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# ------------------------------------------
+# Cloud, Serverless & Infrastructure
+# ------------------------------------------
+cdk.out/
+.aws-sam/
+.serverless/
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+aws-exports.js
+
+# ------------------------------------------
+# Logs & Debugging
+# ------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+eslint-debug.log*
+
+# Diagnostic reports (node)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ------------------------------------------
+# Testing & Coverage
+# ------------------------------------------
+coverage/
+.nyc_output/
+.playwright/
+playwright-report/
+html-report/
+test-results/
+cypress/screenshots/
+cypress/videos/
+.jest/
+.vitest/
+
+# ------------------------------------------
+# Environment Variables, Secrets & Credentials
+# ------------------------------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+*.env
+*.pem
+*.key
+*.cert
+sftp-config.json
+secret.txt
+.secrets/
+
+# ------------------------------------------
+# IDEs & Editor Configurations
+# ------------------------------------------
+# VS Code (usually user-specific settings are ignored, workspace settings kept)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# IntelliJ / WebStorm / PhpStorm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Other editors
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+.history/
+*~
+*.swp
+*.swo
+
+# ------------------------------------------
+# System & OS Files
+# ------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ------------------------------------------
+# Docker & Containers
+# ------------------------------------------
+docker-compose.override.yml
+
+# ------------------------------------------
+# WordPress & PHP (for apps/cms-wordpress)
+# ------------------------------------------
+# Ignore core files if they are downloaded dynamically, but keep them if vendored.
+# Usually, we ignore wp-config.php and user content uploads.
+apps/cms-wordpress/wp-config.php
+apps/cms-wordpress/wp-content/uploads/
+apps/cms-wordpress/wp-content/blogs.dir/
+apps/cms-wordpress/wp-content/upgrade/
+apps/cms-wordpress/wp-content/backup-db/
+apps/cms-wordpress/wp-content/cache/
+apps/cms-wordpress/wp-content/languages/
+apps/cms-wordpress/wp-content/advanced-cache.php
+apps/cms-wordpress/wp-content/wp-cache-config.php
+apps/cms-wordpress/wp-content/plugins/hello.php
+
+# Composer dependencies (if used for PHP/WordPress management)
+vendor/
+composer.lock
+
+# SQLite database files (if used for local WP dev)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+
+# ------------------------------------------
+# Monorepo & Build Tools (Turbo, Nx, etc.)
+# ------------------------------------------
+.turbo/
+.nx/
+.eslintcache
+.stylelintcache
+.prettiercache
