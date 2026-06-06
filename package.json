@@ -6,6 +6,7 @@
     "scripts": {
         "install:all": "npm install",
         "dev:client": "npm run dev --workspace=apps/client-react",
+        "dev:api": "npm run dev --workspace=apps/api-lambda-middleman",
         "docker:up": "docker compose up -d",
         "docker:down": "docker compose down",
         "clean": "rm -rf node_modules packages/*/node_modules apps/*/node_modules"
