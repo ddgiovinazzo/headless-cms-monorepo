@@ -48,6 +48,7 @@ services:
     environment:
       - PORT=3001
       - WORDPRESS_API_URL=http://headless-wordpress-cms/wp-json
+      - REDIS_URL=redis://cms-cache-redis:6379
     depends_on:
       - wordpress
     networks:
@@ -70,10 +71,38 @@ services:
     networks:
       - monorepo-network
 
+  # 5. The Storage/Memory Tier (Redis)
+  redis:
+    image: redis:7-alpine
+    container_name: cms-cache-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+    networks:
+      - monorepo-network
+
+  # 6. Identity & Access Management Tier (Official Auth Service)
+  auth-service:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: headless-auth-service
+    command: start-dev
+    ports:
+      - "8083:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin_password_secure
+    restart: always
+    networks:
+      - monorepo-network
+
 # Persistent Volume Storage Declarations
 volumes:
   mysql_data:
   wp_data:
+  redis_data:
 
     # Shared Infrastructure Network Bridge Declaration
 networks:
