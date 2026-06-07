@@ -1,88 +1,189 @@
 import React, { useState, useEffect } from 'react';
-import { Post, ApiResponse } from './types';
+
+interface Post {
+    id: number;
+    title: string;
+    slug: string;
+    content: string;
+    excerpt: string;
+    date: string;
+}
+
+interface ApiResponse {
+    success: boolean;
+    count: number;
+    data: Post[];
+    meta?: {
+        warning?: string;
+        errorDetails?: string;
+    };
+}
 
 export default function App() {
+    // Session & Data States
+    const [token, setToken] = useState<string | null>(localStorage.getItem('vault_jwt'));
     const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+
+    // Defensive Error Boundary States
     const [systemWarning, setSystemWarning] = useState<string | null>(null);
+    const [technicalDetails, setTechnicalDetails] = useState<string | null>(null);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    // Login Form States
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [authError, setAuthError] = useState<string | null>(null);
 
+    // Trigger login handshake
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setAuthError(null);
+
+        try {
+            const res = await fetch('http://localhost:3001/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                localStorage.setItem('vault_jwt', data.token);
+                setToken(data.token);
+            } else {
+                setAuthError(data.meta?.errorDetails || 'Invalid credentials.');
+            }
+        } catch {
+            setAuthError('Unable to connect to authentication gateway.');
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('vault_jwt');
+        setToken(null);
+        setPosts([]);
+        setSystemWarning(null);
+        setTechnicalDetails(null);
+    };
+
+    // SECURE AUTHORIZED NETWORK COUPLING PIPELINE
     useEffect(() => {
-        const fetchContent = async () => {
+        if (!token) return;
+
+        const fetchProtectedPosts = async () => {
+            setLoading(true);
+            setSystemWarning(null);
+            setTechnicalDetails(null);
+
             try {
-                setLoading(true);
-                const response = await fetch(`${API_URL}/api/posts`);
+                const res = await fetch('http://localhost:3001/api/posts', {
+                    headers: {
+                        // Passing the signed token configuration signature down the wire
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP network error: ${response.status}`);
-                }
+                const data: ApiResponse = await res.json();
 
-                const payload: ApiResponse = await response.json();
-
-                if (payload.success) {
-                    setPosts(payload.data);
+                if (res.ok && data.success) {
+                    setPosts(data.data);
                 } else {
-                    // Fallback override path: backend error handled cleanly without crashing[cite: 1]
-                    setPosts([]);
-                    setSystemWarning(payload.meta?.warning || 'Unexpected content warning received.');
+                    // Captures normalized defensive warnings sent from the middleware layer
+                    setSystemWarning(data.meta?.warning || 'Failed to sync content nodes.');
+                    setTechnicalDetails(data.meta?.errorDetails || `HTTP Error Code: ${res.status}`);
                 }
-            } catch (err: unknown) {
-                const msg = err instanceof Error ? err.message : 'Failed to establish connection to Middleman API.';
-                setError(msg);
+            } catch (err) {
+                setSystemWarning('Network failure trying to contact the secure middleware proxy.');
+                setTechnicalDetails(err instanceof Error ? err.message : 'Unknown link drop.');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchContent();
-    }, [API_URL]);
+        fetchProtectedPosts();
+    }, [token]);
 
+    // UNAUTHENTICATED GATEWAY VIEW
+    if (!token) {
+        return (
+            <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', fontFamily: 'sans-serif' }}>
+                <div style={{ background: '#fff', padding: '2.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', width: '100%', maxWidth: '400px' }}>
+                    <h2 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Decoupled Monorepo</h2>
+                    <p style={{ margin: '0 0 1.5rem 0', color: '#64748b', fontSize: '14px' }}>Sign in to query the protected API gateway tier.</p>
+
+                    <form onSubmit={handleLogin}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: 600, color: '#475569' }}>Username</label>
+                            <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="admin" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} required />
+                        </div>
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: 600, color: '#475569' }}>Password</label>
+                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="password123" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} required />
+                        </div>
+
+                        {authError && (
+                            <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', color: '#991b1b', fontSize: '13px', marginBottom: '1rem' }}>
+                                {authError}
+                            </div>
+                        )}
+
+                        <button type="submit" style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
+                            Authenticate Session
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    // AUTHENTICATED DASHBOARD PORTAL
     return (
-        <div style={{ fontFamily: 'sans-serif', maxWidth: '800px', margin: '2rem auto', padding: '0 1rem' }}>
-            <header style={{ borderBottom: '2px solid #eaeaea', paddingBottom: '1rem', marginBottom: '2rem' }}>
-                <h1>Decoupled Headless CMS Client</h1>
-                <p style={{ color: '#666' }}>Architecture Pattern: React UI → Node Middleman → WordPress Core</p>
-            </header>
-
-            {/* Latency / Loading State */}
-            {loading && <div style={{ padding: '2rem', textAlign: 'center', color: '#4a90e2' }}>Syncing with API Gateway...</div>}
-
-            {/* Graceful Network Error Alert Boundary */}
-            {error && (
-                <div style={{ padding: '1rem', background: '#fff5f5', borderLeft: '4px solid #e53e3e', color: '#c53030', marginBottom: '1.5rem' }}>
-                    <strong>Communication Error:</strong> {error}
+        <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div>
+                    <h1 style={{ margin: 0, color: '#0f172a' }}>Headless Content Workspace</h1>
+                    <span style={{ fontSize: '12px', background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>Session Active</span>
                 </div>
-            )}
+                <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                    Disconnect
+                </button>
+            </div>
 
-            {/* Upstream Degradation Warning Overlay */}
+            {/* Defensive Infrastructure Warning System */}
             {systemWarning && (
-                <div style={{ padding: '1rem', background: '#fffaf0', borderLeft: '4px solid #dd6b20', color: '#dd6b20', marginBottom: '1.5rem' }}>
-                    <strong>System Warning:</strong> {systemWarning}
+                <div style={{ backgroundColor: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '1rem', borderRadius: '4px', marginBottom: '2rem' }}>
+                    <h4 style={{ margin: '0 0 0.25rem 0', color: '#b45309' }}>System Status Note</h4>
+                    <p style={{ margin: 0, color: '#78350f', fontSize: '14px' }}>{systemWarning}</p>
+                    {technicalDetails && (
+                        <code style={{ display: 'block', marginTop: '0.5rem', fontSize: '12px', color: '#92400e', background: '#fef3c7', padding: '4px' }}>
+                            Diagnostics: {technicalDetails}
+                        </code>
+                    )}
                 </div>
             )}
 
-            {/* Content Rendering Block */}
-            {!loading && posts.length === 0 && !error && (
-                <div style={{ textAlign: 'center', padding: '3rem', color: '#718096', border: '1px dashed #cbd5e0' }}>
-                    <h3>No Content Nodes Found</h3>
-                    <p>The system is operational, but the upstream CMS has no active records.</p>
-                </div>
-            )}
-
-            <main>
-                {posts.map((post) => (
-                    <article key={post.id} style={{ marginBottom: '2.5rem', borderBottom: '1px solid #edf2f7', paddingBottom: '1.5rem' }}>
-                        <h2 style={{ color: '#2d3748', marginBottom: '0.5rem' }}>{post.title}</h2>
-                        <small style={{ color: '#a0aec0' }}>Published: {new Date(post.date).toLocaleDateString()}</small>
-                        <div
-                            style={{ marginTop: '1rem', lineHeight: '1.6', color: '#4a5568' }}
-                            dangerouslySetInnerHTML={{ __html: post.content }}
-                        />
-                    </article>
-                ))}
-            </main>
+            {/* Main Data Render Frame */}
+            <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '2rem' }}>
+                <h3 style={{ marginTop: 0, borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem', color: '#1e293b' }}>Aggregated Node Graph Contents</h3>
+                {loading ? (
+                    <p style={{ color: '#64748b' }}>Evaluating secure serverless data channels...</p>
+                ) : posts.length === 0 ? (
+                    <div style={{ padding: '1.5rem 0', color: '#64748b', fontStyle: 'italic' }}>
+                        No Content Nodes Active: The authorization pipeline is fully operational, but upstream providers are responding with zero data records.
+                    </div>
+                ) : (
+                    <div>
+                        {posts.map(post => (
+                            <div key={post.id} style={{ borderBottom: '1px solid #f1f5f9', padding: '1rem 0' }}>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>{post.title}</h4>
+                                <div style={{ color: '#475569', fontSize: '14px' }} dangerouslySetInnerHTML={{ __html: post.content }} />
+                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>Published: {new Date(post.date).toLocaleDateString()}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
